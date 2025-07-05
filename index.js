@@ -9,9 +9,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const settingsRoutes = require('./routes/settings');
-app.use('/api/settings', settingsRoutes);
-
 const pool = mariadb.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -20,11 +17,47 @@ const pool = mariadb.createPool({
   connectionLimit: 5
 });
 
+// Tema paletini getir
+app.get('/api/settings/theme', async (req, res) => {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    const rows = await conn.query("SELECT data FROM settings WHERE name = 'theme' LIMIT 1");
+    if (!rows || rows.length === 0) return res.status(404).json({ error: 'Theme not found' });
+    let data = rows[0].data || rows[0];
+    try {
+      data = JSON.parse(data);
+    } catch (e) {
+      return res.status(500).json({ error: 'JSON parse hatası', details: e.message, raw: data });
+    }
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: 'Veritabanı hatası', details: err.message });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Tema paletini güncelle (tümünü)
+app.put('/api/settings/theme', async (req, res) => {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    await conn.query("UPDATE settings SET data = ? WHERE name = 'theme'", [JSON.stringify(req.body)]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Veritabanı hatası', details: err.message });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+// Diğer endpointler aynı şekilde pool ile devam edecek
+
 app.get('/', (req, res) => {
   res.send('Backend çalışıyor!');
 });
 
-// Örnek bir veritabanı sorgusu endpointi
 app.get('/users', async (req, res) => {
   let conn;
   try {
@@ -38,10 +71,6 @@ app.get('/users', async (req, res) => {
   }
 });
 
-// Admin tablosu oluşturulmalı: 
-// CREATE TABLE admins (id INT AUTO_INCREMENT PRIMARY KEY, username VARCHAR(255) UNIQUE, password VARCHAR(255));
-
-// Admin kayıt endpointi
 app.post('/register', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Eksik bilgi' });
@@ -58,7 +87,6 @@ app.post('/register', async (req, res) => {
   }
 });
 
-// Admin giriş endpointi
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Eksik bilgi' });
@@ -78,7 +106,6 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// JWT doğrulama middleware
 function auth(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -90,7 +117,6 @@ function auth(req, res, next) {
   });
 }
 
-// Korunan admin panel endpointi
 app.get('/admin-panel', auth, (req, res) => {
   res.json({ message: 'Admin paneline hoş geldin!', user: req.user });
 });
