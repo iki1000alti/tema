@@ -9,6 +9,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const settingsRoutes = require('./routes/settings');
+app.use('/api/settings', settingsRoutes);
+
 const pool = mariadb.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
