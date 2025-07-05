@@ -1,8 +1,9 @@
-const mysql = require('mysql2/promise');
-const pool = mysql.createPool({
+const mariadb = require('mariadb');
+const pool = mariadb.createPool({
   host: 'localhost',
-  user: 'KULLANICI_ADI', // burayı değiştir
-  password: 'SIFRE',     // burayı değiştir
-  database: 'VERITABANI_ADI', // burayı değiştir
+  user: 'administ', // burayı değiştir
+  password: '@Q475kbq2',     // burayı değiştir
+  database: 'admin_db', // burayı değiştir
+  connectionLimit: 5
 });
 module.exports = pool; 
