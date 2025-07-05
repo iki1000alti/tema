@@ -21,17 +21,25 @@ const pool = mariadb.createPool({
 app.get('/api/settings/theme', async (req, res) => {
   let conn;
   try {
+    console.log('GET /api/settings/theme çağrıldı');
     conn = await pool.getConnection();
+    console.log('Veritabanı bağlantısı başarılı');
     const rows = await conn.query("SELECT data FROM settings WHERE name = 'theme' LIMIT 1");
-    if (!rows || rows.length === 0) return res.status(404).json({ error: 'Theme not found' });
+    console.log('Sorgu sonucu:', rows);
+    if (!rows || rows.length === 0) {
+      console.error('Theme not found!');
+      return res.status(404).json({ error: 'Theme not found' });
+    }
     let data = rows[0].data || rows[0];
     try {
       data = JSON.parse(data);
     } catch (e) {
+      console.error('JSON parse hatası:', e, data);
       return res.status(500).json({ error: 'JSON parse hatası', details: e.message, raw: data });
     }
     res.json(data);
   } catch (err) {
+    console.error('Veritabanı hatası:', err);
     res.status(500).json({ error: 'Veritabanı hatası', details: err.message });
   } finally {
     if (conn) conn.release();
